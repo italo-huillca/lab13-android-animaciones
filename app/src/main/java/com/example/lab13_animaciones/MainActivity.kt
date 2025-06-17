@@ -7,9 +7,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,25 +49,26 @@ fun MainScreen() {
                     selected = currentScreen == 0,
                     onClick = { currentScreen = 0 },
                     icon = { Text("1") },
-                    label = { Text("Ejercicio 1") }
                 )
                 NavigationBarItem(
                     selected = currentScreen == 1,
                     onClick = { currentScreen = 1 },
                     icon = { Text("2") },
-                    label = { Text("Ejercicio 2") }
                 )
                 NavigationBarItem(
                     selected = currentScreen == 2,
                     onClick = { currentScreen = 2 },
                     icon = { Text("3") },
-                    label = { Text("Ejercicio 3") }
                 )
                 NavigationBarItem(
                     selected = currentScreen == 3,
                     onClick = { currentScreen = 3 },
                     icon = { Text("4") },
-                    label = { Text("Ejercicio 4") }
+                )
+                NavigationBarItem(
+                    selected = currentScreen == 4,
+                    onClick = { currentScreen = 4 },
+                    icon = { Text("5") },
                 )
             }
         }
@@ -79,7 +83,8 @@ fun MainScreen() {
                     0 -> "Ejercicio 1: AnimatedVisibility"
                     1 -> "Ejercicio 2: Color Animation"
                     2 -> "Ejercicio 3: Tamaño y Posición"
-                    else -> "Ejercicio 4: Estados Animados"
+                    3 -> "Ejercicio 4: Estados Animados"
+                    else -> "Ejercicio 5: Animaciones Combinadas"
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -93,6 +98,7 @@ fun MainScreen() {
                 1 -> ColorAnimationDemo()
                 2 -> SizeAndPositionDemo()
                 3 -> StateTransitionDemo()
+                4 -> CombinedAnimationsDemo()
             }
         }
     }
@@ -362,6 +368,141 @@ fun StateTransitionDemo(modifier: Modifier = Modifier) {
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun CombinedAnimationsDemo(modifier: Modifier = Modifier) {
+    var isDarkMode by remember { mutableStateOf(false) }
+    var isBoxExpanded by remember { mutableStateOf(false) }
+    var isButtonVisible by remember { mutableStateOf(true) }
+    
+    // Animaciones para el cuadro
+    val boxSize by animateDpAsState(
+        targetValue = if (isBoxExpanded) 200.dp else 100.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "size"
+    )
+    
+    val boxColor by animateColorAsState(
+        targetValue = when {
+            isDarkMode && isBoxExpanded -> Color.Cyan
+            isDarkMode -> Color.Blue
+            isBoxExpanded -> Color.Magenta
+            else -> Color.Red
+        },
+        animationSpec = tween(durationMillis = 500),
+        label = "color"
+    )
+    
+    // Animación para el offset del botón
+    val buttonOffset by animateDpAsState(
+        targetValue = if (isButtonVisible) 0.dp else 200.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "offset"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(if (isDarkMode) Color.DarkGray else Color.LightGray),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Botón de modo oscuro/claro con AnimatedContent
+            AnimatedContent(
+                targetState = isDarkMode,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(durationMillis = 500)) with
+                    fadeOut(animationSpec = tween(durationMillis = 500)) using
+                    SizeTransform { _, _ ->
+                        spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    }
+                }
+            ) { dark ->
+                IconButton(
+                    onClick = { isDarkMode = !isDarkMode }
+                ) {
+                    Icon(
+                        imageVector = if (dark) Icons.Outlined.Star else Icons.Outlined.Close,
+                        contentDescription = if (dark) "Cambiar a modo claro" else "Cambiar a modo oscuro",
+                        tint = if (dark) Color.White else Color.Black,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+
+            // Cuadro animado que cambia de tamaño y color
+            Box(
+                modifier = Modifier
+                    .size(boxSize)
+                    .background(boxColor)
+                    .clickable { isBoxExpanded = !isBoxExpanded }
+            )
+
+            // Botón con AnimatedVisibility
+            AnimatedVisibility(
+                visible = isButtonVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { it * 2 }, // Empieza desde más abajo
+                    animationSpec = tween(durationMillis = 800, easing = EaseOutBack)
+                ) + fadeIn(
+                    animationSpec = tween(durationMillis = 500)
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { it * 2 }, // Sale hacia abajo
+                    animationSpec = tween(durationMillis = 800, easing = EaseInBack)
+                ) + fadeOut(
+                    animationSpec = tween(durationMillis = 500)
+                )
+            ) {
+                Button(
+                    onClick = { isButtonVisible = false },
+                    modifier = Modifier.offset(y = buttonOffset)
+                ) {
+                    Text("¡Desaparecer!")
+                }
+            }
+
+            // Botón para resetear con AnimatedVisibility
+            AnimatedVisibility(
+                visible = !isButtonVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { -it }, // Entra desde arriba
+                    animationSpec = tween(durationMillis = 800, easing = EaseOutBack)
+                ) + fadeIn(
+                    animationSpec = tween(durationMillis = 500)
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it }, // Sale hacia arriba
+                    animationSpec = tween(durationMillis = 800, easing = EaseInBack)
+                ) + fadeOut(
+                    animationSpec = tween(durationMillis = 500)
+                )
+            ) {
+                Button(
+                    onClick = {
+                        isButtonVisible = true
+                        isBoxExpanded = false
+                    }
+                ) {
+                    Text("Resetear")
                 }
             }
         }
