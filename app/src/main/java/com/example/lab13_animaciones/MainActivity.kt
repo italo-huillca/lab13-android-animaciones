@@ -8,6 +8,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.lab13_animaciones.ui.theme.Lab13animacionesTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,6 +60,12 @@ fun MainScreen() {
                     icon = { Text("3") },
                     label = { Text("Ejercicio 3") }
                 )
+                NavigationBarItem(
+                    selected = currentScreen == 3,
+                    onClick = { currentScreen = 3 },
+                    icon = { Text("4") },
+                    label = { Text("Ejercicio 4") }
+                )
             }
         }
     ) { innerPadding ->
@@ -68,7 +78,8 @@ fun MainScreen() {
                 text = when (currentScreen) {
                     0 -> "Ejercicio 1: AnimatedVisibility"
                     1 -> "Ejercicio 2: Color Animation"
-                    else -> "Ejercicio 3: Tamaño y Posición"
+                    2 -> "Ejercicio 3: Tamaño y Posición"
+                    else -> "Ejercicio 4: Estados Animados"
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -81,6 +92,7 @@ fun MainScreen() {
                 0 -> AnimationDemo()
                 1 -> ColorAnimationDemo()
                 2 -> SizeAndPositionDemo()
+                3 -> StateTransitionDemo()
             }
         }
     }
@@ -230,6 +242,128 @@ fun SizeAndPositionDemo(modifier: Modifier = Modifier) {
                 text = "Orden:\n1. offset\n2. size\n3. background",
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+enum class ContentState {
+    Loading,
+    Content,
+    Error
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun StateTransitionDemo(modifier: Modifier = Modifier) {
+    var currentState by remember { mutableStateOf(ContentState.Loading) }
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Botones para cambiar estados
+        Row(
+            modifier = Modifier.padding(bottom = 32.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = {
+                    scope.launch {
+                        currentState = ContentState.Loading
+                        delay(2000) // Simular carga
+                        currentState = ContentState.Content
+                    }
+                }
+            ) {
+                Text("Cargar")
+            }
+            
+            Button(
+                onClick = { currentState = ContentState.Error }
+            ) {
+                Text("Error")
+            }
+        }
+
+        // Contenedor animado
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(16.dp)
+        ) {
+            AnimatedContent(
+                targetState = currentState,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(durationMillis = 500)) with
+                    fadeOut(animationSpec = tween(durationMillis = 500)) using
+                    SizeTransform { initialSize, targetSize ->
+                        spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) { state ->
+                when (state) {
+                    ContentState.Loading -> {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "Cargando...",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                    ContentState.Content -> {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Success",
+                                modifier = Modifier.size(64.dp),
+                                tint = Color.Green
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "¡Contenido Cargado!",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                    ContentState.Error -> {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Error",
+                                modifier = Modifier.size(64.dp),
+                                tint = Color.Red
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "¡Error al cargar!",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.Red
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
