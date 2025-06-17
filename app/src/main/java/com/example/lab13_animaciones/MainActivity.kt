@@ -5,9 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -52,6 +50,12 @@ fun MainScreen() {
                     icon = { Text("2") },
                     label = { Text("Ejercicio 2") }
                 )
+                NavigationBarItem(
+                    selected = currentScreen == 2,
+                    onClick = { currentScreen = 2 },
+                    icon = { Text("3") },
+                    label = { Text("Ejercicio 3") }
+                )
             }
         }
     ) { innerPadding ->
@@ -61,7 +65,11 @@ fun MainScreen() {
                 .padding(innerPadding)
         ) {
             Text(
-                text = if (currentScreen == 0) "Ejercicio 1: AnimatedVisibility" else "Ejercicio 2: Color Animation",
+                text = when (currentScreen) {
+                    0 -> "Ejercicio 1: AnimatedVisibility"
+                    1 -> "Ejercicio 2: Color Animation"
+                    else -> "Ejercicio 3: Tamaño y Posición"
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
@@ -72,6 +80,7 @@ fun MainScreen() {
             when (currentScreen) {
                 0 -> AnimationDemo()
                 1 -> ColorAnimationDemo()
+                2 -> SizeAndPositionDemo()
             }
         }
     }
@@ -150,6 +159,78 @@ fun ColorAnimationDemo(modifier: Modifier = Modifier) {
                 .size(200.dp)
                 .background(color)
         )
+    }
+}
+
+@Composable
+fun SizeAndPositionDemo(modifier: Modifier = Modifier) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    val size by animateDpAsState(
+        targetValue = if (isExpanded) 300.dp else 100.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "size"
+    )
+    
+    val offsetX by animateDpAsState(
+        targetValue = if (isExpanded) 100.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "offsetX"
+    )
+    
+    val offsetY by animateDpAsState(
+        targetValue = if (isExpanded) 50.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "offsetY"
+    )
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 32.dp)
+        ) {
+            // Contenedor para el cuadro animado con espacio suficiente
+            Box(
+                modifier = Modifier
+                    .height(400.dp)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = offsetX, y = offsetY)
+                        .size(size)
+                        .background(Color.Gray)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(9.dp))
+            
+            Button(
+                onClick = { isExpanded = !isExpanded }
+            ) {
+                Text(text = if (isExpanded) "Contraer" else "Expandir")
+            }
+
+            Spacer(modifier = Modifier.height(7.dp))
+            
+            Text(
+                text = "Orden:\n1. offset\n2. size\n3. background",
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
